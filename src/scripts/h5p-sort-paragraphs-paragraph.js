@@ -52,7 +52,7 @@ export default class PimenkoSortParagraphsParagraph {
     this.shown = true;
 
     // Buttons
-    this.buttons = {};
+    this.buttons = [];
 
     // Build content
     this.content = this.buildParagraph(this.params.text, this.params.l10n);
@@ -94,11 +94,6 @@ export default class PimenkoSortParagraphsParagraph {
     });
     paragraph.appendChild(this.containerText);
 
-    // Container for buttons
-    this.buttonsContainer = document.createElement('div');
-    this.buttonsContainer.classList.add('h5p-sort-paragraphs-buttons-container');
-    paragraph.appendChild(this.buttonsContainer);
-
     // Left container for information
     const containerLeft = this.buildDIVContainer({
       classText: 'h5p-sort-paragraphs-paragraph-button-container',
@@ -106,7 +101,7 @@ export default class PimenkoSortParagraphsParagraph {
         'aria-hidden': 'true'
       }
     });
-    this.buttonsContainer.appendChild(containerLeft);
+    paragraph.appendChild(containerLeft);
 
     if (this.params?.options?.addButtonsForMovement) {
       this.buttons['up'] = this.buildButtonUp();
@@ -120,7 +115,7 @@ export default class PimenkoSortParagraphsParagraph {
         'aria-hidden': 'true'
       }
     });
-    this.buttonsContainer.appendChild(containerRight);
+    paragraph.appendChild(containerRight);
 
     // Container for correct/wrong markers
     this.containerCorrections = this.buildDIVContainer({
@@ -176,18 +171,18 @@ export default class PimenkoSortParagraphsParagraph {
    */
   buildButtonUp() {
     return new Button(
-      {
-        a11y: {
-          active: this.params.l10n.up,
-          disabled: this.params.l10n.disabled
+        {
+          a11y: {
+            active: this.params.l10n.up,
+            disabled: this.params.l10n.disabled
+          },
+          classes: ['h5p-sort-paragraphs-button', 'h5p-sort-paragraphs-paragraph-button-up']
         },
-        classes: ['h5p-sort-paragraphs-button', 'h5p-sort-paragraphs-paragraph-button-up']
-      },
-      {
-        onClick: (() => {
-          this.callbacks.onMoveUp(this.content);
-        })
-      }
+        {
+          onClick: (() => {
+            this.callbacks.onMoveUp(this.content);
+          })
+        }
     );
   }
 
@@ -197,18 +192,18 @@ export default class PimenkoSortParagraphsParagraph {
    */
   buildButtonDown() {
     return new Button(
-      {
-        a11y: {
-          active: this.params.l10n.down,
-          disabled: this.params.l10n.disabled
+        {
+          a11y: {
+            active: this.params.l10n.down,
+            disabled: this.params.l10n.disabled
+          },
+          classes: ['h5p-sort-paragraphs-button', 'h5p-sort-paragraphs-paragraph-button-down']
         },
-        classes: ['h5p-sort-paragraphs-button', 'h5p-sort-paragraphs-paragraph-button-down']
-      },
-      {
-        onClick: (() => {
-          this.callbacks.onMoveDown(this.content);
-        })
-      }
+        {
+          onClick: (() => {
+            this.callbacks.onMoveDown(this.content);
+          })
+        }
     );
   }
 
@@ -258,7 +253,7 @@ export default class PimenkoSortParagraphsParagraph {
           this.callbacks.onKeyboardCancel(event.currentTarget);
           break;
 
-        // TODO: Add handling for PageUp and PageDown
+          // TODO: Add handling for PageUp and PageDown
       }
     });
   }
@@ -617,11 +612,11 @@ export default class PimenkoSortParagraphsParagraph {
     }
 
     if (
-      this.params.options.addButtonsForMovement &&
-      (
-        event.target === this.buttons['up'].getDOM() ||
-        event.target === this.buttons['down'].getDOM()
-      )
+        this.params.options.addButtonsForMovement &&
+        (
+            event.target === this.buttons['up'].getDOM() ||
+            event.target === this.buttons['down'].getDOM()
+        )
     ) {
       this.content.setAttribute('draggable', true);
     }
@@ -646,9 +641,9 @@ export default class PimenkoSortParagraphsParagraph {
 
     // Workaround for Firefox that may scale the draggable down otherwise
     event.dataTransfer.setDragImage(
-      this.content,
-      this.pointerPosition.x - this.content.getBoundingClientRect().left,
-      this.pointerPosition.y - this.content.getBoundingClientRect().top
+        this.content,
+        this.pointerPosition.x - this.content.getBoundingClientRect().left,
+        this.pointerPosition.y - this.content.getBoundingClientRect().top
     );
 
     // Will hide browser's draggable copy as well without timeout
@@ -713,32 +708,5 @@ export default class PimenkoSortParagraphsParagraph {
     this.resetDragging();
 
     this.callbacks.onDragEnd(event.currentTarget);
-  }
-
-  /**
-   * Check whether buttons fit in vertically.
-   * @return {boolean} True, if buttons fin in vertically, else false.
-   */
-  doButtonsFitVertically() {
-    if (this.content.clientHeight === 0 || !Object.keys(this.buttons).length) {
-      return false;
-    }
-
-    this.styleContent = this.styleContent || window.getComputedStyle(this.content);
-    const contentPadding = parseFloat(this.styleContent.getPropertyValue('padding-top')) + parseFloat(this.styleContent.getPropertyValue('padding-bottom'));
-    const contentHeight = this.content.clientHeight - contentPadding;
-
-    // Assuming all buttons have the same size
-    const buttonHeight = Object.values(this.buttons)[0].getDOM().offsetHeight;
-
-    return contentHeight >= 2 * buttonHeight;
-  }
-
-  /**
-   * Set buttons vertical.
-   * @param {boolean} vertical If true, set vertical, else horizontal.
-   */
-  setButtonsVertical(vertical) {
-    this.buttonsContainer.classList.toggle('vertical', vertical);
   }
 }

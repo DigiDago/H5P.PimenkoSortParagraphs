@@ -27,8 +27,6 @@ export default class PimenkoSortParagraphsContent {
     this.enabled = true; // Enabled state of content
     this.oldOrder = null; // Old order when dragging
 
-    this.viewStates = this.params.viewStates;
-
     // Original position of selected draggable
     this.selectedDraggable = null;
 
@@ -50,7 +48,7 @@ export default class PimenkoSortParagraphsContent {
 
     // Build n paragraphs
     this.paragraphs = params.paragraphs
-      .map(paragraph => this.buildParagraph(paragraph));
+        .map(paragraph => this.buildParagraph(paragraph));
 
     // Build n-1 separators for transitions
     this.separators = [];
@@ -103,53 +101,30 @@ export default class PimenkoSortParagraphsContent {
   }
 
   /**
-   * Focus first draggable.
-   *
-   * @param {number} [delay=0] Delay for focussing.
-   */
-  focusFirstDraggable(delay = 0) {
-    window.clearTimeout(this.focusTimeout);
-    this.focusTimeout = window.setTimeout(() => {
-      this.list.childNodes[0].focus();
-    }, delay); // Give results time to be read
-  }
-
-  /**
    * Show results.
-   *
-   * @param {object} [params={}] Parameters.
-   * @param {boolean} [params.skipExplanation] If true, skip score explanation.
-   * @param {boolean} [params.skipFocus] If true, skip focus.
    */
-  showResults(params = {}) {
+  showResults() {
     const results = this.computeResults();
     this.list.setAttribute('aria-label', this.params.a11y.listDescriptionCheckAnswer);
 
     // Hide buttons
     this.paragraphs.forEach(paragraph => {
-      paragraph.setButtonsVertical(false);
       paragraph.hideButtons();
       paragraph.disable();
     });
 
-    if (!params.skipExplanation) {
-      // Add score explanation and ARIA depending on scoring mode.
-      if (this.options.scoringMode === 'positions') {
-        this.showScoreExplanation(this.getDraggables().map(draggable => this.getParagraph(draggable)), results);
-        this.addScoreAria(this.getDraggables(), results);
-      }
-      else if (this.options.scoringMode === 'transitions') {
-        this.showScoreExplanation(this.separators, results);
-        this.addScoreAria(this.getDraggables(), results);
-        this.setAriaLabel(this.getDraggables().pop(), {action: 'neutral'});
-      }
+    // Add score explanation and ARIA depending on scoring mode.
+    if (this.options.scoringMode === 'positions') {
+      this.showScoreExplanation(this.getDraggables().map(draggable => this.getParagraph(draggable)), results);
+      this.addScoreAria(this.getDraggables(), results);
+    }
+    else if (this.options.scoringMode === 'transitions') {
+      this.showScoreExplanation(this.separators, results);
+      this.addScoreAria(this.getDraggables(), results);
+      this.setAriaLabel(this.getDraggables().pop(), {action: 'neutral'});
     }
 
     this.resetDraggablesTabIndex();
-
-    if (!params.skipFocus) {
-      this.focusFirstDraggable(100);
-    }
   }
 
   /**
@@ -168,17 +143,13 @@ export default class PimenkoSortParagraphsContent {
 
   /**
    * Show solutions.
-   *
-   * @param {object} [params={}] Parameters.
-   * @param {boolean} [params.skipFocus] If true, skip focussing.
    */
-  showSolutions(params = {}) {
+  showSolutions() {
     this.hideResults();
 
     this.list.setAttribute('aria-label', this.params.a11y.listDescriptionShowSolution);
 
     this.paragraphs.forEach((paragraph) => {
-      paragraph.setButtonsVertical(false);
       paragraph.toggleEffect('solution', true);
     });
 
@@ -191,16 +162,11 @@ export default class PimenkoSortParagraphsContent {
     draggables.forEach((draggable, index) => {
       if (index > 0) {
         startPosition += this.paragraphs[index - 1].getDOM().offsetHeight +
-          draggable.offsetTop - draggables[index - 1].offsetTop - draggables[index - 1].offsetHeight;
+            draggable.offsetTop - draggables[index - 1].offsetTop - draggables[index - 1].offsetHeight;
       }
 
       this.paragraphs[index].translate({ y: startPosition - this.paragraphs[index].getDOM().offsetTop});
     });
-
-    if (!params.skipFocus) {
-      // Focus when draggables are re-ordered
-      this.focusFirstDraggable(550);
-    }
   }
 
   /**
@@ -242,8 +208,8 @@ export default class PimenkoSortParagraphsContent {
         action: (this.options.scoringMode === 'positions') ? 'resultPositions' : 'resultTransitions',
         result: (answer === true) ? this.params.a11y.correct : this.params.a11y.wrong,
         points: (answer === true) ?
-          this.params.a11y.point.replace('@score', 1) :
-          (showMinus) ? this.params.a11y.point.replace('@score', -1) : undefined
+            this.params.a11y.point.replace('@score', 1) :
+            (showMinus) ? this.params.a11y.point.replace('@score', -1) : undefined
       };
 
       this.setAriaLabel(element, ariaOptions);
@@ -296,7 +262,7 @@ export default class PimenkoSortParagraphsContent {
       // +1 if match, -1 if no match only if penalty is on
       score = ids.reduce((score, id, index) => {
         const match = (id === index) ||
-          (this.options.duplicatesInterchangeable && draggables[index].innerText === paragraphs[index].innerText);
+            (this.options.duplicatesInterchangeable && draggables[index].innerText === paragraphs[index].innerText);
 
         correctAnswers[index] = match;
 
@@ -384,28 +350,28 @@ export default class PimenkoSortParagraphsContent {
    */
   buildParagraph(text) {
     const paragraph = new PimenkoSortParagraphsParagraph(
-      {
-        text: text,
-        l10n: this.params.l10n,
-        options: {
-          addButtonsForMovement: this.params.addButtonsForMovement
+        {
+          text: text,
+          l10n: this.params.l10n,
+          options: {
+            addButtonsForMovement: this.params.addButtonsForMovement
+          }
+        },
+        {
+          onMoveUp: (draggable => this.handleDraggableMoved(draggable, 'up')),
+          onMoveDown: (draggable => this.handleDraggableMoved(draggable, 'down')),
+          onFocusOut: (draggable => this.handleDraggableFocusOut(draggable)),
+          onDragStart: (draggable => this.handleDraggableDragStart(draggable)),
+          onDragEnter: (draggable => this.handleDraggableDragEnter(draggable)),
+          onDragLeave: (draggable => this.handleDraggableDragLeave(draggable)),
+          onDragEnd: (draggable => this.handleDraggableDragEnd(draggable)),
+          onKeyboardUp: (draggable => this.handleDraggableKeyboardMoved(draggable, 'up')),
+          onKeyboardDown: (draggable => this.handleDraggableKeyboardMoved(draggable, 'down')),
+          onKeyboardSelect: (draggable => this.handleDraggableKeyboardSelect(draggable)),
+          onKeyboardCancel: (draggable => this.handleDraggableKeyboardCancel(draggable)),
+          onMouseDown: (draggable => this.handleDraggableMouseDown(draggable)),
+          onMouseUp: (draggable => this.handleDraggableMouseUp(draggable))
         }
-      },
-      {
-        onMoveUp: (draggable => this.handleDraggableMoved(draggable, 'up')),
-        onMoveDown: (draggable => this.handleDraggableMoved(draggable, 'down')),
-        onFocusOut: (draggable => this.handleDraggableFocusOut(draggable)),
-        onDragStart: (draggable => this.handleDraggableDragStart(draggable)),
-        onDragEnter: (draggable => this.handleDraggableDragEnter(draggable)),
-        onDragLeave: (draggable => this.handleDraggableDragLeave(draggable)),
-        onDragEnd: (draggable => this.handleDraggableDragEnd(draggable)),
-        onKeyboardUp: (draggable => this.handleDraggableKeyboardMoved(draggable, 'up')),
-        onKeyboardDown: (draggable => this.handleDraggableKeyboardMoved(draggable, 'down')),
-        onKeyboardSelect: (draggable => this.handleDraggableKeyboardSelect(draggable)),
-        onKeyboardCancel: (draggable => this.handleDraggableKeyboardCancel(draggable)),
-        onMouseDown: (draggable => this.handleDraggableMouseDown(draggable)),
-        onMouseUp: (draggable => this.handleDraggableMouseUp(draggable))
-      }
     );
     return paragraph;
   }
@@ -558,9 +524,9 @@ export default class PimenkoSortParagraphsContent {
     const position = this.getDraggableIndex(draggable);
 
     if (
-      direction === 'up' && position <= 0 ||
-      direction === 'down' && position >= this.paragraphs.length - 1 ||
-      direction !== 'up' && direction !== 'down'
+        direction === 'up' && position <= 0 ||
+        direction === 'down' && position >= this.paragraphs.length - 1 ||
+        direction !== 'up' && direction !== 'down'
     ) {
       return; // At outer position or invalid direction
     }
@@ -771,7 +737,7 @@ export default class PimenkoSortParagraphsContent {
    */
   getDraggablesOrder() {
     return this.getDraggables()
-      .map(draggable => this.paragraphs.indexOf(this.getParagraph(draggable)));
+        .map(draggable => this.paragraphs.indexOf(this.getParagraph(draggable)));
   }
 
   /**
@@ -823,11 +789,11 @@ export default class PimenkoSortParagraphsContent {
     // Fill ARIA template for action
     let ariaLabel = this.ariaTemplates[options.action];
     ariaLabel = ariaLabel
-      .replace('@current', position)
-      .replace('@total', length)
-      .replace('@text', text)
-      .replace('@result', options.result || '')
-      .replace('@points.', (options.points) ? `${options.points}. ` : '');
+        .replace('@current', position)
+        .replace('@total', length)
+        .replace('@text', text)
+        .replace('@result', options.result || '')
+        .replace('@points.', (options.points) ? `${options.points}. ` : '');
 
     if (ariaLabel.substr(-1) !== '.') {
       ariaLabel = `${ariaLabel}.`;
@@ -940,26 +906,26 @@ export default class PimenkoSortParagraphsContent {
     // Translate elements to new final position
     setTimeout(() => {
       this.transitionElements
-        .forEach(element => {
-          const paragraph = this.getParagraph(element);
+          .forEach(element => {
+            const paragraph = this.getParagraph(element);
 
-          let offset;
+            let offset;
 
-          if (element === this.transitionElement1) {
-            offset = -1 * (this.transitionElement1.offsetTop - this.transitionElement2.offsetTop - this.transitionElement2.offsetHeight + this.transitionElement1.offsetHeight);
-          }
-          else if (element === this.transitionElement2) {
-            offset = -1 * (this.transitionElement2.offsetTop - this.transitionElement1.offsetTop);
-          }
-          else {
-            offset = (element.offsetTop < element1.offsetTop || element.offsetTop > element2.offsetTop) ?
-              0 :
-              this.transitionElement2.offsetHeight - this.transitionElement1.offsetHeight;
-          }
+            if (element === this.transitionElement1) {
+              offset = -1 * (this.transitionElement1.offsetTop - this.transitionElement2.offsetTop - this.transitionElement2.offsetHeight + this.transitionElement1.offsetHeight);
+            }
+            else if (element === this.transitionElement2) {
+              offset = -1 * (this.transitionElement2.offsetTop - this.transitionElement1.offsetTop);
+            }
+            else {
+              offset = (element.offsetTop < element1.offsetTop || element.offsetTop > element2.offsetTop) ?
+                  0 :
+                  this.transitionElement2.offsetHeight - this.transitionElement1.offsetHeight;
+            }
 
-          paragraph.translate({ y: offset });
-          paragraph.disable(); // Here, because animation influences disable visuals
-        });
+            paragraph.translate({ y: offset });
+            paragraph.disable(); // Here, because animation influences disable visuals
+          });
     }, 0);
   }
 
@@ -1007,41 +973,19 @@ export default class PimenkoSortParagraphsContent {
     this.resetDraggablesTabIndex();
     this.resetDraggables();
     this.resetAriaLabels();
-
-    this.focusFirstDraggable(100);
   }
 
   /**
    * Set view state.
-   * @param {string} newState State to set.
+   * @param {string} state State to set.
+   * @param {string[]} states Allowed states.
    */
-  setViewState(newState) {
-    this.viewStates.keys().forEach(state => {
-      this.content.classList.toggle(
-        `h5p-sort-paragraphs-view-state-${state}`,
-        state !== newState
-      );
+  setViewState(state, states) {
+    states.forEach(state => {
+      this.content.classList.remove(`h5p-sort-paragraphs-view-state-${state}`);
     });
 
-    this.viewState = newState;
-  }
-
-  /**
-   * Resize.
-   */
-  resize() {
-    let buttonsVertical;
-    if (this.viewState !== 'task') {
-      buttonsVertical = false;
-    }
-    else {
-      buttonsVertical = this.paragraphs.every((paragraph) => {
-        return paragraph.doButtonsFitVertically();
-      });
-    }
-
-    this.paragraphs.forEach((paragraph) => {
-      paragraph.setButtonsVertical(buttonsVertical);
-    });
+    this.viewState = state;
+    this.content.classList.add(`h5p-sort-paragraphs-view-state-${state}`);
   }
 }

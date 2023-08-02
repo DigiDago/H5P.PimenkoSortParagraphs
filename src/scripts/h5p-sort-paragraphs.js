@@ -83,8 +83,8 @@ export default class PimenkoSortParagraphs extends H5P.Question {
 
     // this.previousState now holds the saved content state of the previous session
     this.previousState = (this.extras.previousState && this.extras.previousState.order) ?
-      this.extras.previousState :
-      null;
+        this.extras.previousState :
+        null;
   }
 
   /**
@@ -129,30 +129,29 @@ export default class PimenkoSortParagraphs extends H5P.Question {
     }
 
     this.content = new PimenkoSortParagraphsContent(
-      {
-        paragraphs: this.params.paragraphs,
-        addButtonsForMovement: this.params.behaviour.addButtonsForMovement,
-        duplicatesInterchangeable: this.params.behaviour.duplicatesInterchangeable,
-        penalties: this.params.behaviour.applyPenalties,
-        scoringMode: this.params.behaviour.scoringMode,
-        previousState: this.previousState,
-        a11y: this.params.a11y,
-        l10n: {
-          up: this.params.l10n.up,
-          down: this.params.l10n.down,
-          disabled: this.params.l10n.disabled
+        {
+          paragraphs: this.params.paragraphs,
+          addButtonsForMovement: this.params.behaviour.addButtonsForMovement,
+          duplicatesInterchangeable: this.params.behaviour.duplicatesInterchangeable,
+          penalties: this.params.behaviour.applyPenalties,
+          scoringMode: this.params.behaviour.scoringMode,
+          previousState: this.previousState,
+          a11y: this.params.a11y,
+          l10n: {
+            up: this.params.l10n.up,
+            down: this.params.l10n.down,
+            disabled: this.params.l10n.disabled
+          }
         },
-        viewStates: PimenkoSortParagraphs.VIEW_STATES
-      },
-      {
-        onInteracted: () => {
-          this.handleInteracted();
-        },
-        read: (text) => {
-          // Using H5P.Question to let screen reader read text
-          this.read(text);
+        {
+          onInteracted: () => {
+            this.handleInteracted();
+          },
+          read: (text) => {
+            // Using H5P.Question to let screen reader read text
+            this.read(text);
+          }
         }
-      }
     );
 
     // Current user view
@@ -161,37 +160,16 @@ export default class PimenkoSortParagraphs extends H5P.Question {
     // Register content with H5P.Question
     this.setContent(this.content.getDOM());
 
-    if (
-      this.previousState !== null &&
-      (
-        this.previousState.viewState === PimenkoSortParagraphs.VIEW_STATES['results'] ||
-        this.previousState.viewState === PimenkoSortParagraphs.VIEW_STATES['solutions']
-      )
-    ) {
+    if (this.previousState !== null && (this.previousState.view === 'results' || this.previousState.view === 'solutions')) {
       // Need to wait until DOM is ready for us
       H5P.externalDispatcher.on('initialized', () => {
-        this.isExternalCall = true; // Prevent focussing
-        if (this.previousState.viewState === PimenkoSortParagraphs.VIEW_STATES['results']) {
-          this.setViewState('results');
-          this.checkAnswer();
-        }
-        else {
-          this.setViewState('solutions');
-          this.checkAnswer();
-          this.hideButton('show-solution');
-          this.showSolutions();
-        }
-        this.isExternalCall = false;
+        this.setViewState('results');
+        this.checkAnswer();
       });
     }
 
     // Register Buttons
     this.addButtons();
-
-    // Inform content about resize
-    this.on('resize', () => {
-      this.content.resize();
-    });
 
     this.trigger('resize');
   }
@@ -247,21 +225,11 @@ export default class PimenkoSortParagraphs extends H5P.Question {
    * @see contract at {@link https://h5p.org/documentation/developers/contracts#guides-header-2}
    */
   getScore() {
-    let score = 0;
-
     if (!this.content) {
-      score = this.previousState?.score || 0;
-    }
-    else if (this.viewState === PimenkoSortParagraphs.VIEW_STATES['solutions']) {
-      score = this.currentScore || this.previousState?.score || 0;
-    }
-    else {
-      score = (this.content.computeResults()).score;
+      return this.previousState ? this.previousState.score || 0 : 0;
     }
 
-    this.currentScore = score;
-
-    return score;
+    return (this.content.computeResults()).score;
   }
 
   /**
@@ -285,10 +253,10 @@ export default class PimenkoSortParagraphs extends H5P.Question {
 
     var htmlcontent = "<div class='h5p-question-solutioncustomtext'>" + htmlcontentsolutiontext.textContent + "</div>";
     var feedbackContainer = document.querySelector(".h5p-question-feedback");
-    feedbackContainer.insertAdjacentHTML("afterbegin", htmlcontent);
+    feedbackContainer.innerHTML = htmlcontent;
 
     this.setViewState('solutions');
-    this.content.showSolutions({ skipFocus: this.isExternalCall });
+    this.content.showSolutions();
     this.trigger('resize');
   }
 
@@ -320,7 +288,7 @@ export default class PimenkoSortParagraphs extends H5P.Question {
     const xAPIEvent = this.createXAPIEvent('answered');
 
     xAPIEvent.setScoredResult(this.getScore(), this.getMaxScore(), this,
-      true, this.isPassed());
+        true, this.isPassed());
 
     xAPIEvent.data.statement.result.response = this.content.getDraggablesOrder().join('[,]');
 
@@ -335,8 +303,8 @@ export default class PimenkoSortParagraphs extends H5P.Question {
   createXAPIEvent(verb) {
     const xAPIEvent = this.createXAPIEventTemplate(verb);
     Util.extend(
-      xAPIEvent.getVerifiedStatementValue(['object', 'definition']),
-      this.getxAPIDefinition());
+        xAPIEvent.getVerifiedStatementValue(['object', 'definition']),
+        this.getxAPIDefinition());
     return xAPIEvent;
   }
 
@@ -392,57 +360,45 @@ export default class PimenkoSortParagraphs extends H5P.Question {
    * Check answer.
    */
   checkAnswer() {
-    if (this.viewState === PimenkoSortParagraphs.VIEW_STATES['task']) {
-      // checkAnswer was not triggered to recreate previous state
+    this.content.disable();
+
+    this.hideButton('check-answer');
+
+    if (this.params.behaviour.enableSolutionsButton && this.getScore() !== this.getMaxScore()) {
+      this.showButton('show-solution');
+    }
+
+    if (this.params.behaviour.enableRetry) {
+      this.showButton('try-again');
+    }
+
+    this.content.showResults();
+
+    const score = this.getScore();
+    const maxScore = this.getMaxScore();
+
+    const textScore = H5P.Question.determineOverallFeedback(
+        this.params.overallFeedback, score / maxScore);
+
+    // Output via H5P.Question - expects :num and :total
+    const ariaMessage = this.params.a11y.yourResult
+        .replace('@score', ':num')
+        .replace('@total', ':total');
+
+    this.setFeedback(
+        textScore.trim(),
+        score,
+        maxScore,
+        ariaMessage
+    );
+
+    if (this.viewState === 'task') {
+      // checkAnswer was mot triggered to recreate previous state
       this.trigger(this.getXAPIAnswerEvent());
       this.trigger(this.createXAPIEvent('completed')); // Store state
     }
 
     this.setViewState('results');
-    this.trigger('resize');
-
-    const isExternalCall = this.isExternalCall;
-
-    setTimeout(() => {
-      this.content.disable();
-
-      this.hideButton('check-answer');
-
-      if (
-        this.viewState !== PimenkoSortParagraphs.VIEW_STATES['solutions'] &&
-        this.params.behaviour.enableSolutionsButton &&
-        this.getScore() !== this.getMaxScore()
-      ) {
-        this.showButton('show-solution');
-      }
-
-      if (this.params.behaviour.enableRetry) {
-        this.showButton('try-again');
-      }
-
-      this.content.showResults({
-        skipExplanation: this.viewState === PimenkoSortParagraphs.VIEW_STATES['solutions'],
-        skipFocus: isExternalCall
-      });
-
-      const score = this.getScore();
-      const maxScore = this.getMaxScore();
-
-      const textScore = H5P.Question.determineOverallFeedback(
-        this.params.overallFeedback, score / maxScore);
-
-      // Output via H5P.Question - expects :num and :total
-      const ariaMessage = this.params.a11y.yourResult
-        .replace('@score', ':num')
-        .replace('@total', ':total');
-
-      this.setFeedback(
-        textScore.trim(),
-        score,
-        maxScore,
-        ariaMessage
-      );
-    }, 0); // Prevent flickering when content resizes by button alignment
   }
 
   /**
@@ -481,16 +437,10 @@ export default class PimenkoSortParagraphs extends H5P.Question {
    * @return {object} Current state.
    */
   getCurrentState() {
-    if (!this.content) {
-      return;
-    }
-
     return {
       order: this.content.getDraggablesOrder(),
-      viewState: this.viewState,
-      score: this.viewState === PimenkoSortParagraphs.VIEW_STATES['task'] ?
-        0 :
-        this.getScore()
+      view: this.viewState,
+      score: this.viewState === 'task' ? 0 : this.getScore()
     };
   }
 
@@ -503,30 +453,20 @@ export default class PimenkoSortParagraphs extends H5P.Question {
 
   /**
    * Set view state.
-   * @param {string|number} state State to be set.
+   * @param {string} state View state.
    */
   setViewState(state) {
-    if (
-      typeof state === 'string' &&
-      PimenkoSortParagraphs.VIEW_STATES[state] !== undefined
-    ) {
-      this.viewState = PimenkoSortParagraphs.VIEW_STATES[state];
+    if (PimenkoSortParagraphs.VIEW_STATES.indexOf(state) === -1) {
+      return;
     }
-    else if (
-      typeof state === 'number' &&
-      Object.values(PimenkoSortParagraphs.VIEW_STATES).includes(state)
-    ) {
-      this.viewState = state;
 
-      this.content.setViewState(
-        PimenkoSortParagraphs.VIEW_STATES.find(value => value === state).keys[0]
-      );
-    }
+    this.viewState = state;
+    this.content.setViewState(state, PimenkoSortParagraphs.VIEW_STATES);
   }
 }
 
 /** @constant {string} */
 PimenkoSortParagraphs.DEFAULT_DESCRIPTION = 'PimenkoSortParagraphs';
 
-/** @constant {object} view states */
-PimenkoSortParagraphs.VIEW_STATES = { task: 0, results: 1, solutions: 2 };
+/** @constant {string[]} view state names*/
+PimenkoSortParagraphs.VIEW_STATES = ['task', 'results', 'solutions'];

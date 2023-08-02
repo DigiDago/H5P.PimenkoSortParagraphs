@@ -73,8 +73,8 @@ export default class PimenkoSortParagraphsSeparator {
    */
   showScoreExplanation(scoreExplanation) {
     if (
-      this.content.classList.contains('h5p-question-plus-one') ||
-      this.content.classList.contains('h5p-question-minus-one')
+        this.content.classList.contains('h5p-question-plus-one') ||
+        this.content.classList.contains('h5p-question-minus-one')
     ) {
       return; // Skip, already contains score explanation
     }
